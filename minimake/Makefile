@@ -1,4 +1,4 @@
-TARGET = main
+TARGET = minimake
 SRC = basics.c
 OBJ = basics.o
 CC = gcc
