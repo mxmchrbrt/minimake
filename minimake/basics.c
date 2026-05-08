@@ -31,7 +31,7 @@ int main(int argc, char *argv[]){
         case 'p':
           char **lines = read_all_lines(file);
           lines = clean_lines(lines);
-          pretty_print(lines);
+          parsing(lines);
           free_lines(lines);
           break;
 

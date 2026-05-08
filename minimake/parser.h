@@ -13,5 +13,5 @@
 char **read_all_lines(char *filename);
 char **clean_lines(char **lines);
 void free_lines(char **lines);
-void pretty_print(char **lines);
+void parsing(char **lines);
 #endif

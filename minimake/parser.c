@@ -57,20 +57,21 @@ void free_lines(char **lines){
     free(lines);
 }
 
-void pretty_print(char **lines){ 
+void parsing(char **lines){ 
   if (!lines) return;
   int def_found = 0;
   int var_found = 0;
   for (size_t i = 0; lines[i] != NULL; i++){
     if ((strchr(lines[i],'=') != NULL) && !var_found){
+      // find variables and name with another function
       printf("# variables\n");
       var_found = 1; 
     }
     if ((strchr(lines[i],':') != NULL) && !def_found){
+      // find rules and dependencies with another function
       printf("# rules\n");
       def_found = 1; 
-    }
-    
+    }    
     printf("%s",(lines[i]));
   }
   return;
