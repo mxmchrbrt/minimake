@@ -1,6 +1,5 @@
 #include "basics.h"
 
-void pretty_printf();
 int parse_options(int argc, char *argv[]){
   int option;
    while ((option = getopt(argc,argv, ":f:hp")) != -1){

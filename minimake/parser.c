@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *remove_space(char *str){ // remove all space but the one before and after '='
+char *remove_space(char *str){
     if (!str) return NULL;
     int i = 0, j = 0;
     while (str[i]) {
         if (str[i] != ' ') {
             str[j++] = str[i++];
-        } else {
-            /* keep space only if it's immediately before or after '=' in the original string */
+          }
+        else {
             if ((i > 0 && str[i-1] == '=') || (str[i+1] != '\0' && str[i+1] == '=')) {
                 str[j++] = ' ';
             }
@@ -20,8 +20,6 @@ char *remove_space(char *str){ // remove all space but the one before and after 
     return str;
 }
 
-/* Apply remove_space to each non-NULL element of a NULL-terminated array of strings.
-   Returns the same array pointer. */
 char **remove_space_array(char **arr){
     if (!arr) return NULL;
     for (int i = 0; arr[i] != NULL; ++i) {
@@ -30,25 +28,6 @@ char **remove_space_array(char **arr){
     return arr;
 }
 
-/* Pretty-print lines obtained from getline: clean each line using remove_space_array and print.
-   This strips trailing newlines first to avoid double newlines when printing. */
-void pretty_print(char **lines){
-    if (!lines) return;
-    for (int i = 0; lines[i] != NULL; ++i) {
-        size_t len = strlen(lines[i]);
-        if (len > 0 && lines[i][len-1] == '\n') {
-            lines[i][len-1] = '\0';
-        }
-    }
-    /* clean all lines in-place */
-    remove_space_array(lines);
-    for (int i = 0; lines[i] != NULL; ++i) {
-        printf("%s\n", lines[i]);
-    }
-}
-
-/* Read all lines from a FILE* using getline and return a NULL-terminated array of malloc'ed strings.
-   Caller must free the returned array and its strings (use free_lines). */
 char **read_all_lines(FILE *stream){
     if (!stream) return NULL;
     size_t cap = 16;
@@ -83,13 +62,11 @@ char **read_all_lines(FILE *stream){
     }
     free(buf);
     lines[cnt] = NULL;
-    /* shrink to fit */
     char **tmp = realloc(lines, (cnt + 1) * sizeof(char*));
     if (tmp) lines = tmp;
     return lines;
 }
 
-/* Free array returned by read_all_lines */
 void free_lines(char **lines){
     if (!lines) return;
     for (size_t i = 0; lines[i] != NULL; ++i) free(lines[i]);
