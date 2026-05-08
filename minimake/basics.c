@@ -19,22 +19,21 @@ int main(int argc, char *argv[]){
             printf("Please TYPE \"./minimake -h\" only to show options\n");
             break;
           }
-          if (access(optarg, F_OK) == -1){
-            printf("File does not exist.\n");
-            return 3;
-          }
+          FILE *f = fopen(optarg, "r");
+          if (!f) { printf("minimake: *** File does not exist. Stop.\n"); return 3; }
           else{
             // use optarg
+            fclose(f);
             file = optarg;
           } 
           break;
 
-          case 'p':
-            char **lines = read_all_lines(file);
-            lines = clean_lines(lines);
-            pretty_print(lines);
-            free_lines(lines);
-            break;
+        case 'p':
+          char **lines = read_all_lines(file);
+          lines = clean_lines(lines);
+          pretty_print(lines);
+          free_lines(lines);
+          break;
 
         case '?':
           printf("minimake: *** No rule to make target '%s'. Stop.\n", argv[optind-1]);
@@ -44,12 +43,5 @@ int main(int argc, char *argv[]){
           return 2;
       }
   }
-  char **targets = malloc((optind+1)*sizeof(char *));
-  int j = 0;
-  for (int i = optind; i < argc; i++){
-    targets[j] = argv[i];
-    j++;
-  }
-  free(targets);
   return 0; 
 }
