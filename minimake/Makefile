@@ -1,6 +1,6 @@
 TARGET = minimake
-SRC = basics.c
-OBJ = basics.o
+SRC = basics.c parser.c
+OBJ = basics.o parser.o
 CC = gcc
 CFLAGS = -Wall -Wextra -fsanitize=address -g
 all: $(TARGET)

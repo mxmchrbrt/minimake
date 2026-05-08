@@ -1,7 +1,9 @@
 #include "basics.h"
+#include "parser.h"
 
-int parse_options(int argc, char *argv[]){
+int main(int argc, char *argv[]){
   int option;
+  char *file = "Makefile";
    while ((option = getopt(argc,argv, ":f:hp")) != -1){
       switch (option){
         case 'h':
@@ -13,8 +15,9 @@ int parse_options(int argc, char *argv[]){
        "\tTARGETS are target name of makefile rule to execute\n");
           break;
         case 'f':
-          if (strcmp(optarg,"-h")){
-            printf("Please type \"./minimake -h\" only to get help options");
+          if (strcmp(optarg,"-h") == 0){
+            printf("Please TYPE \"./minimake -h\" only to show options\n");
+            break;
           }
           if (access(optarg, F_OK) == -1){
             printf("File does not exist.\n");
@@ -22,13 +25,16 @@ int parse_options(int argc, char *argv[]){
           }
           else{
             // use optarg
-            char* file = optarg;
+            file = optarg;
           } 
           break;
 
           case 'p':
-          printf("Print\n");
-          break;
+            char **lines = read_all_lines(file);
+            lines = clean_lines(lines);
+            pretty_print(lines);
+            free_lines(lines);
+            break;
 
         case '?':
           printf("minimake: *** No rule to make target '%s'. Stop.\n", argv[optind-1]);
@@ -46,9 +52,4 @@ int parse_options(int argc, char *argv[]){
   }
   free(targets);
   return 0; 
-}
-
-int main(int argc, char *argv[]){
-  parse_options(argc,argv);
-  return 0;
 }
