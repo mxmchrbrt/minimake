@@ -1,10 +1,13 @@
 #include "basics.h"
-#include "parser.h"
 
 int main(int argc, char *argv[]){
   int option;
   char *file = "Makefile";
+  int p_option = 0;
+  struct data final_data;
    while ((option = getopt(argc,argv, ":f:hp")) != -1){
+
+
       switch (option){
         case 'h':
           printf("Usage: minimake [OPTIONS] [TARGETS]\n"
@@ -30,8 +33,11 @@ int main(int argc, char *argv[]){
 
         case 'p':
           char **lines = read_all_lines(file);
+          p_option = 1;
           clean_lines(lines);
-          parsing(lines);
+          final_data = parsing(lines);
+          pretty_print(final_data);
+          free(final_data.data);
           free_lines(lines);
           break;
 
@@ -40,8 +46,17 @@ int main(int argc, char *argv[]){
           return 2; 
         case ':':
           printf("minimake: *** No file provided. Stop.\n");
-          return 2;
-      }
+          return 2;  
+          break;
+      }    
+  }
+  if (p_option == 0){
+    char **lines = read_all_lines(file);
+    clean_lines(lines);
+    final_data = parsing(lines);
+    execute_commands(final_data);
+    free(final_data.data);
+    free_lines(lines);
   }
   return 0; 
 }

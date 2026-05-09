@@ -93,11 +93,22 @@ struct parse_data parsing_aux(char *lines){
       free(tmp);
     }
   } 
-
+  //definition
+  char *p3 = strchr(lines, '=');
+  if (p3) {
+    char *tmp = strdup(p3 + 2);
+    if (tmp) {
+      size_t len = strlen(tmp);
+      if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
+      strncpy(data.variables_value, tmp, sizeof(data.variables_value)-1);
+      data.command[sizeof(data.variables_value)-1] = '\0';
+      free(tmp);
+    }
+  }  
   for (size_t i = 0; lines[i] != '\0'; i++){
-   //definition
+   //variable name
    if (strchr(lines,'=') != NULL){
-    sscanf(lines,"%[a-zA-Z0-9]=%[a-zA-Z0-9]",data.variable,data.variables_value); 
+    sscanf(lines,"%[a-zA-Z0-9]=",data.variable); 
    }
 
    //rule
@@ -108,9 +119,11 @@ struct parse_data parsing_aux(char *lines){
   return data;
 }
 
-void parsing(char **lines){
-  if (!lines) return;
+struct data parsing(char **lines){
   struct data final_data;
+  final_data.size = 0;
+  if (!lines) return final_data;
+
   struct parse_data *data = calloc(100,sizeof(struct parse_data)); 
   final_data.data = data;
   final_data.size = 0;
@@ -122,12 +135,10 @@ void parsing(char **lines){
     //printf("\nLines %d\n",data[i].line_pos);
     //printf("variable = %s\nrule = %s\ndependencies = %s\nvariables_value = %s\ncommand = %s\ncomment = %s\n", data[i].variable,data[i].rule,data[i].dependencies,data[i].variables_value,data[i].command,data[i].comment);
   }
-  pretty_print(final_data);
-  free(data);
-  return;
+  return final_data;
 }
 
-char **clean_lines(char **lines){ //remove spaces except those after ':' or after a '\t' (keep dependency / command spacing)
+char **clean_lines(char **lines){ //remove spaces except those after ':' or after a '\t' or after '=' (keep dependency / command / assignment spacing)
   if (!lines) return NULL;
   for (size_t i = 0; lines[i] != NULL; ++i) {
     char *src = lines[i];
@@ -135,6 +146,7 @@ char **clean_lines(char **lines){ //remove spaces except those after ':' or afte
     size_t k = 0;
     int after_colon = 0;
     int after_tab = 0;
+    int after_eq = 0;
     for (size_t j = 0; src[j] != '\0'; ++j) {
       if (src[j] == ':') {
         after_colon = 1;
@@ -142,8 +154,11 @@ char **clean_lines(char **lines){ //remove spaces except those after ':' or afte
       } else if (src[j] == '\t') {
         after_tab = 1;
         dst[k++] = src[j];
+      } else if (src[j] == '=') {
+        after_eq = 1;
+        dst[k++] = src[j];
       } else if (src[j] == ' ') {
-        if (after_colon || after_tab) dst[k++] = src[j];
+        if (after_colon || after_tab || after_eq) dst[k++] = src[j];
       } else {
         dst[k++] = src[j];
       }
@@ -189,6 +204,34 @@ void pretty_print(struct data final_data){
 
     if (final_data.data[i].command[0] != '\0'){
       printf("\t'%s'\n",final_data.data[i].command);
+    }
+  }
+}
+
+void execute_commands(struct data final_data){
+  if (!final_data.data) return;
+  for (size_t i = 0; i < final_data.size; i++){
+    const char *cmd = final_data.data[i].command;
+    if (!cmd || cmd[0] == '\0') continue;
+    printf("%s\n",final_data.data[i].command);
+    fflush(stdout);
+    pid_t pid = fork();
+    if (pid == 0) {
+      /* child: run command in a shell */
+      execlp("sh", "sh", "-c", cmd, (char *)NULL);
+      perror("execlp");
+      _exit(127);
+    } else if (pid > 0) {
+      int status;
+      if (waitpid(pid, &status, 0) == -1) {
+        perror("waitpid");
+      } else {
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+          fprintf(stderr, "minimake: command failed (exit %d): %s\n", WEXITSTATUS(status), cmd);
+        }
+      }
+    } else {
+      perror("fork");
     }
   }
 }

@@ -1,4 +1,4 @@
-#ifndef PARSER_H   /* Include guard */
+#ifndef PARSER_H 
 #define PARSER_H
 
 #include <stddef.h>
@@ -28,8 +28,9 @@ struct data{
 char **read_all_lines(char *filename);
 char **clean_lines(char **lines);
 void free_lines(char **lines);
-void parsing(char **lines);
+struct data parsing(char **lines);
 struct parse_data parsing_aux(char *lines);
 void pretty_print(struct data final_data);
+void execute_commands(struct data final_data);
 
 #endif

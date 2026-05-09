@@ -1,4 +1,4 @@
-#ifndef BASICS_H   /* Include guard */
+#ifndef BASICS_H   
 #define BASICS_H
 
 #include <stddef.h>
@@ -9,11 +9,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
-struct target{
-  char** target;
-  int target_count;
-};
+#include "parser.h"
 
 int parse_options(int argc, char *argv[]);
+
 #endif
