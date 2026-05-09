@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
 
         case 'p':
           char **lines = read_all_lines(file);
-          lines = clean_lines(lines);
+          clean_lines(lines);
           parsing(lines);
           free_lines(lines);
           break;

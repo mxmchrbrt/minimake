@@ -41,7 +41,6 @@ char **read_all_lines(char *filename){
             lines = tmp;
             cap = newcap;
         }
-        //free(s);
         lines[cnt] = s;
         cnt++;
     }
@@ -68,53 +67,84 @@ struct parse_data parsing_aux(char *lines){
   strcpy(data.command,"");
   strcpy(data.comment,"");
   if (!lines) return data;
+
+  // comment
+  char *p = strchr(lines, '#');
+  if (p) {
+    char *tmp = strdup(p + 1);
+    if (tmp) {
+      size_t len = strlen(tmp);
+      if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
+      strncpy(data.comment, tmp, sizeof(data.comment)-1);
+      data.comment[sizeof(data.comment)-1] = '\0';
+      free(tmp);
+    }
+  }
+
+   //command
+  char *p2 = strchr(lines, '\t');
+  if (p2) {
+    char *tmp = strdup(p2 + 1);
+    if (tmp) {
+      size_t len = strlen(tmp);
+      if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
+      strncpy(data.command, tmp, sizeof(data.command)-1);
+      data.command[sizeof(data.command)-1] = '\0';
+      free(tmp);
+    }
+  } 
+
   for (size_t i = 0; lines[i] != '\0'; i++){
    //definition
    if (strchr(lines,'=') != NULL){
-    //sscanf(lines,"%s=%s"); 
+    sscanf(lines,"%[a-zA-Z0-9]=%[a-zA-Z0-9]",data.variable,data.variables_value); 
    }
 
    //rule
    if (strchr(lines,':') != NULL){
-   
-   }
-
-   //comment
-   if (strchr(lines,'#') != NULL){
-   
-   }
+    sscanf(lines,"%[a-zA-Z0-9]:%[a-zA-Z0-9 ]",data.rule,data.dependencies); 
+   } 
   }
   return data;
 }
 
 void parsing(char **lines){
   if (!lines) return;
+  struct data final_data;
   struct parse_data *data = calloc(100,sizeof(struct parse_data)); 
+  final_data.data = data;
+  final_data.size = 0;
   for (size_t i = 0; lines[i] != NULL; i++){
     data[i] = parsing_aux(lines[i]);   
-    printf("\nLines %d\n",i);
-    printf("variable = %s\nrule = %s\ndependencies = %s\nvariables_value = %s\ncommand = %s\ncomment = %s\n", data[i].variable,data[i].rule,data[i].dependencies,data[i].variables_value,data[i].command,data[i].comment);
+    data[i].line_pos = i+1;
+    final_data.size++;
+    // To check the parser get correct datas
+    //printf("\nLines %d\n",data[i].line_pos);
+    //printf("variable = %s\nrule = %s\ndependencies = %s\nvariables_value = %s\ncommand = %s\ncomment = %s\n", data[i].variable,data[i].rule,data[i].dependencies,data[i].variables_value,data[i].command,data[i].comment);
   }
+  pretty_print(final_data);
   free(data);
   return;
 }
 
-char **clean_lines(char **lines){ //remove spaces except those after ':' (keep dependency spacing)
+char **clean_lines(char **lines){ //remove spaces except those after ':' or after a '\t' (keep dependency / command spacing)
   if (!lines) return NULL;
   for (size_t i = 0; lines[i] != NULL; ++i) {
     char *src = lines[i];
     char *dst = lines[i];
     size_t k = 0;
     int after_colon = 0;
+    int after_tab = 0;
     for (size_t j = 0; src[j] != '\0'; ++j) {
       if (src[j] == ':') {
         after_colon = 1;
         dst[k++] = src[j];
-      }
-      else if (src[j] == ' ') {
-        if (after_colon) dst[k++] = src[j];
-      }
-      else {
+      } else if (src[j] == '\t') {
+        after_tab = 1;
+        dst[k++] = src[j];
+      } else if (src[j] == ' ') {
+        if (after_colon || after_tab) dst[k++] = src[j];
+      } else {
         dst[k++] = src[j];
       }
     }
@@ -132,11 +162,33 @@ void print_lines(char **lines){
   return;
 }
 
-int main(){
-  char **lines = read_all_lines("txt");
-  clean_lines(lines);
-  //print_lines(lines);
-  parsing(lines);
-  free_lines(lines);
-  return 0;
+void pretty_print(struct data final_data){
+  int variables = 0;
+  int rules = 0;
+  for (size_t i = 0; i < final_data.size; i++){
+    if (final_data.data[i].variable[0] != '\0'){
+      if (!variables){
+        printf("# variables\n");
+        variables = 1;
+      }
+      printf("'%s' = '%s'\n",final_data.data[i].variable,final_data.data[i].variables_value);
+    }
+
+    if (final_data.data[i].rule[0] != '\0'){
+      if (!rules){
+        printf("\n# rules\n");
+        rules = 1;
+      }
+      if (final_data.data[i].dependencies[0] != '\0'){
+        printf("(%s): %s\n",final_data.data[i].rule,final_data.data[i].dependencies);
+      }
+      else{
+        printf("(%s):\n",final_data.data[i].rule);
+      }
+    }
+
+    if (final_data.data[i].command[0] != '\0'){
+      printf("\t'%s'\n",final_data.data[i].command);
+    }
+  }
 }

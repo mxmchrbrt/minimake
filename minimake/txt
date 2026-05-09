@@ -1,4 +1,5 @@
 CC = gcc
-
-all: aucune
+# comment1
+all: aucune aucune2
 	echo Toto
+# comment2

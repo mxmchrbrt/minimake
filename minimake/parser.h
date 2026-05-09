@@ -16,7 +16,13 @@ struct parse_data{
   char dependencies[100];
   char variables_value[100];
   char command[100];
-  char comment[100];
+  char comment[200];
+  int line_pos;
+};
+
+struct data{
+  struct parse_data *data;
+  size_t size;
 };
 
 char **read_all_lines(char *filename);
@@ -24,4 +30,6 @@ char **clean_lines(char **lines);
 void free_lines(char **lines);
 void parsing(char **lines);
 struct parse_data parsing_aux(char *lines);
+void pretty_print(struct data final_data);
+
 #endif
