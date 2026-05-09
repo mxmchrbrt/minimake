@@ -10,8 +10,18 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
+struct parse_data{
+  char variable[100];
+  char rule[100];
+  char dependencies[100];
+  char variables_value[100];
+  char command[100];
+  char comment[100];
+};
+
 char **read_all_lines(char *filename);
 char **clean_lines(char **lines);
 void free_lines(char **lines);
 void parsing(char **lines);
+struct parse_data parsing_aux(char *lines);
 #endif

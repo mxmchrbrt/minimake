@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "parser.h"
 
 char **read_all_lines(char *filename){
     if (!filename) return NULL;
@@ -30,16 +31,17 @@ char **read_all_lines(char *filename){
             size_t newcap = cap * 2;
             char **tmp = realloc(lines, newcap * sizeof(char*));
             if (!tmp) {
-                free(s);
                 free(buf);
                 for (size_t k = 0; k < cnt; ++k) free(lines[k]);
                 free(lines);
                 fclose(stream);
                 return NULL;
             }
+
             lines = tmp;
             cap = newcap;
         }
+        //free(s);
         lines[cnt] = s;
         cnt++;
     }
@@ -57,27 +59,84 @@ void free_lines(char **lines){
     free(lines);
 }
 
-void parsing(char **lines){ 
+struct parse_data parsing_aux(char *lines){
+  struct parse_data data;
+  strcpy(data.variable,"");
+  strcpy(data.rule,"");
+  strcpy(data.dependencies,"");
+  strcpy(data.variables_value,"");
+  strcpy(data.command,"");
+  strcpy(data.comment,"");
+  if (!lines) return data;
+  for (size_t i = 0; lines[i] != '\0'; i++){
+   //definition
+   if (strchr(lines,'=') != NULL){
+    //sscanf(lines,"%s=%s"); 
+   }
+
+   //rule
+   if (strchr(lines,':') != NULL){
+   
+   }
+
+   //comment
+   if (strchr(lines,'#') != NULL){
+   
+   }
+  }
+  return data;
+}
+
+void parsing(char **lines){
   if (!lines) return;
-  int def_found = 0;
-  int var_found = 0;
+  struct parse_data *data = calloc(100,sizeof(struct parse_data)); 
   for (size_t i = 0; lines[i] != NULL; i++){
-    if ((strchr(lines[i],'=') != NULL) && !var_found){
-      // find variables and name with another function
-      printf("# variables\n");
-      var_found = 1; 
+    data[i] = parsing_aux(lines[i]);   
+    printf("\nLines %d\n",i);
+    printf("variable = %s\nrule = %s\ndependencies = %s\nvariables_value = %s\ncommand = %s\ncomment = %s\n", data[i].variable,data[i].rule,data[i].dependencies,data[i].variables_value,data[i].command,data[i].comment);
+  }
+  free(data);
+  return;
+}
+
+char **clean_lines(char **lines){ //remove spaces except those after ':' (keep dependency spacing)
+  if (!lines) return NULL;
+  for (size_t i = 0; lines[i] != NULL; ++i) {
+    char *src = lines[i];
+    char *dst = lines[i];
+    size_t k = 0;
+    int after_colon = 0;
+    for (size_t j = 0; src[j] != '\0'; ++j) {
+      if (src[j] == ':') {
+        after_colon = 1;
+        dst[k++] = src[j];
+      }
+      else if (src[j] == ' ') {
+        if (after_colon) dst[k++] = src[j];
+      }
+      else {
+        dst[k++] = src[j];
+      }
     }
-    if ((strchr(lines[i],':') != NULL) && !def_found){
-      // find rules and dependencies with another function
-      printf("# rules\n");
-      def_found = 1; 
-    }    
-    printf("%s",(lines[i]));
+    dst[k] = '\0';
+  }
+  return lines;
+}
+
+void print_lines(char **lines){
+  if (!lines) return;
+  for (size_t i = 0; lines[i] != NULL; i++) {
+    char *cur_line = lines[i];
+    printf("%s",cur_line);
   }
   return;
 }
 
-char **clean_lines(char **lines){
-  if (!lines) return NULL;
-  return lines;
+int main(){
+  char **lines = read_all_lines("txt");
+  clean_lines(lines);
+  //print_lines(lines);
+  parsing(lines);
+  free_lines(lines);
+  return 0;
 }
