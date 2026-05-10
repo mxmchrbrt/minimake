@@ -1,0 +1,6 @@
+Usage: minimake [OPTIONS] [TARGETS]
+	OPTIONS can be:
+		"-h"            to display the helper
+		"-p"            to print the rules and variables
+		"-f" <filename> to change the make config file, "Makefile" by default
+	TARGETS are target name of makefile rule to execute

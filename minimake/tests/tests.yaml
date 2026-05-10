@@ -1,7 +1,42 @@
 tests:
+  # Original tests
   - args: [ "-f", "tests/Minimakefile.in", "-p" ]
     exit_code: 0
     output_file: "tests/Minimakefile.out_p"
   - args: [ "-f", "tests/Minimakefile.in" ]
     exit_code: 0
     output_file: "tests/Minimakefile.out_e"
+
+  # -h flag
+  - args: [ "-h" ]
+    exit_code: 0
+    output_file: "tests/help.out"
+
+  # -f with nonexistent file -> exit 3
+  - args: [ "-f", "tests/doesnotexist.mk" ]
+    exit_code: 3
+    output_file: "tests/nofile.out"
+
+  # Multiple variables, rule with deps, multiple commands
+  - args: [ "-f", "tests/Multi.in", "-p" ]
+    exit_code: 0
+    output_file: "tests/Multi.out_p"
+  - args: [ "-f", "tests/Multi.in" ]
+    exit_code: 0
+    output_file: "tests/Multi.out_e"
+
+  # Rule with no dependencies
+  - args: [ "-f", "tests/NoDeps.in", "-p" ]
+    exit_code: 0
+    output_file: "tests/NoDeps.out_p"
+  - args: [ "-f", "tests/NoDeps.in" ]
+    exit_code: 0
+    output_file: "tests/NoDeps.out_e"
+
+  # Variable expansion in command
+  - args: [ "-f", "tests/VarExpand.in", "-p" ]
+    exit_code: 0
+    output_file: "tests/VarExpand.out_p"
+  - args: [ "-f", "tests/VarExpand.in" ]
+    exit_code: 0
+    output_file: "tests/VarExpand.out_e"

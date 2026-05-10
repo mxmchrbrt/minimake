@@ -1,0 +1,6 @@
+# variables
+'MSG' = 'world'
+
+# rules
+(all):
+	'echo world'

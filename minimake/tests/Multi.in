@@ -1,0 +1,8 @@
+CC = gcc
+CFLAGS = -Wall
+TARGET = hello
+
+all: hello
+hello:
+	echo Building
+	echo Done

@@ -1,0 +1,4 @@
+
+# rules
+(all):
+	'echo Hello'

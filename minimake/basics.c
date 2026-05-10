@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){
           return 2;
       }
   }
-  if (p_option == 0){
+  if (p_option == 0 && !h_option){
     char **lines = read_all_lines(file);
     clean_lines(lines);
     final_data = parsing(lines);

@@ -1,0 +1,10 @@
+# variables
+'CC' = 'gcc'
+'CFLAGS' = '-Wall'
+'TARGET' = 'hello'
+
+# rules
+(all): [hello] 
+(hello):
+	'echo Building'
+	'echo Done'

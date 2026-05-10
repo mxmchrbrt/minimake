@@ -350,39 +350,47 @@ char **expand_variables(char **lines, struct data final_data){
   return lines;
 }       
 
-size_t number_of_rules(struct data final_data) {
-    size_t count = 0;
+
+
+struct parse_data *find_rule(struct data final_data, char *name) {
     for (size_t i = 0; i < final_data.size; i++) {
-        if (final_data.data[i].rule[0] != '\0')
-            count++;
+        if (final_data.data[i].rule[0] == '\0') continue;
+
+        if (strcmp(final_data.data[i].rule, name) == 0)
+            return &final_data.data[i];
+
+        char *rule_copy = strdup(final_data.data[i].rule);
+        char **tokens = split(rule_copy);
+        if (tokens) {
+            for (size_t j = 0; tokens[j] != NULL; j++) {
+                if (strcmp(tokens[j], name) == 0) {
+                    free_lines(tokens);
+                    free(rule_copy);
+                    return &final_data.data[i];
+                }
+            }
+            free_lines(tokens);
+        }
+        free(rule_copy);
     }
-    return count;
+    return NULL;
 }
 
-void execute_commands(struct data final_data) {
-    if (!final_data.data) return;
 
-    size_t last_rule = number_of_rules(final_data);
-    if (last_rule == 0) return;
+void run_command(char *command) {
+    char *cmd_copy = strdup(command);
+    char *token = cmd_copy;
+    char *next;
+    while (1) {
+        next = strstr(token, " && ");
+        if (next) *next = '\0';
 
-    char *commands[100] = {NULL};
-
-    size_t idx = 0;
-    for (size_t i = 0; i < final_data.size && idx < 100; i++) {
-        if (final_data.data[i].rule[0] != '\0' && final_data.data[i].command[0] != '\0') {
-            commands[idx] = final_data.data[i].command;
-            idx++;
-        }
-    }
-
-    for (size_t i = idx; i > 0; i--) {
-        if (!commands[i-1]) continue;
-        printf("%s\n", commands[i-1]);
+        printf("%s\n", token);
         fflush(stdout);
 
         pid_t pid = fork();
         if (pid == 0) {
-            system(commands[i-1]);
+            system(token);
             exit(0);
         } else if (pid > 0) {
             int status;
@@ -391,13 +399,57 @@ void execute_commands(struct data final_data) {
             } else {
                 if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
                     fprintf(stderr, "minimake: command failed (exit %d): %s\n",
-                            WEXITSTATUS(status), commands[i-1]);
+                            WEXITSTATUS(status), token);
+                    free(cmd_copy);
                     return;
                 }
             }
         } else {
             perror("fork");
+            free(cmd_copy);
             return;
+        }
+        if (!next) break;
+        token = next + 4;
+    }
+    free(cmd_copy);
+}
+
+static char *visited[100] = {NULL};
+static size_t visited_count = 0;
+
+int already_visited(char *rule_name) {
+    for (size_t i = 0; i < visited_count; i++)
+        if (strcmp(visited[i], rule_name) == 0) return 1;
+    return 0;
+}
+
+void execute_rule(struct data final_data, char *rule_name) {
+    struct parse_data *rule = find_rule(final_data, rule_name);
+    if (!rule) return;
+    if (already_visited(rule->rule)) return;
+    
+    visited[visited_count++] = rule->rule;
+
+    if (rule->dependencies != NULL) {
+        for (size_t j = 0; rule->dependencies[j] != NULL; j++) {
+            if (rule->dependencies[j][0] != '\0')
+                execute_rule(final_data, rule->dependencies[j]);
+        }
+    }
+
+    if (rule->command[0] != '\0')
+        run_command(rule->command);
+}
+
+void execute_commands(struct data final_data) {
+    if (!final_data.data) return;
+    visited_count = 0;
+
+    for (size_t i = 0; i < final_data.size; i++) {
+        if (final_data.data[i].rule[0] != '\0') {
+            execute_rule(final_data, final_data.data[i].rule);
+            break;
         }
     }
 }
