@@ -4,10 +4,17 @@ int main(int argc, char *argv[]){
   int option;
   char *file = "Makefile";
   int p_option = 0;
+  int h_option = 0;
   struct data final_data;
-   while ((option = getopt(argc,argv, ":f:hp")) != -1){
 
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-h") == 0) {
+      h_option = 1;
+      break;
+    }
+  }
 
+  while ((option = getopt(argc,argv, ":f:hp")) != -1){
       switch (option){
         case 'h':
           printf("Usage: minimake [OPTIONS] [TARGETS]\n"
@@ -25,38 +32,60 @@ int main(int argc, char *argv[]){
           FILE *f = fopen(optarg, "r");
           if (!f) { printf("minimake: *** File does not exist. Stop.\n"); return 3; }
           else{
-            // use optarg
             fclose(f);
             file = optarg;
-          } 
+          }
           break;
 
-        case 'p':
-          char **lines = read_all_lines(file);
-          p_option = 1;
-          clean_lines(lines);
-          final_data = parsing(lines);
-          pretty_print(final_data);
-          free(final_data.data);
-          free_lines(lines);
+        case 'p':;
+          if (!h_option){
+            char **lines = read_all_lines(file);
+            clean_lines(lines);
+            final_data = parsing(lines);
+      
+            lines = expand_variables(lines, final_data);
+
+            for (size_t i = 0; i < final_data.size; i++)
+              free_lines(final_data.data[i].dependencies);
+            free(final_data.data);
+
+            struct data final_data_new = parsing(lines);
+            pretty_print(final_data_new);
+
+            for (size_t i = 0; i < final_data_new.size; i++)
+              free_lines(final_data_new.data[i].dependencies);
+            free(final_data_new.data);
+            free_lines(lines);
+          }
           break;
 
         case '?':
           printf("minimake: *** No rule to make target '%s'. Stop.\n", argv[optind-1]);
-          return 2; 
+          return 2;
         case ':':
           printf("minimake: *** No file provided. Stop.\n");
-          return 2;  
-          break;
-      }    
+          return 2;
+      }
   }
   if (p_option == 0){
     char **lines = read_all_lines(file);
     clean_lines(lines);
     final_data = parsing(lines);
-    execute_commands(final_data);
+    
+    lines = expand_variables(lines, final_data);
+
+
+    for (size_t i = 0; i < final_data.size; i++)
+      free_lines(final_data.data[i].dependencies);
     free(final_data.data);
+
+    struct data final_data_new = parsing(lines);
+    //execute_commands(final_data_new);
+
+    for (size_t i = 0; i < final_data_new.size; i++)
+        free_lines(final_data_new.data[i].dependencies);
+    free(final_data_new.data);
     free_lines(lines);
   }
-  return 0; 
+  return 0;
 }

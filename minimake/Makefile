@@ -3,13 +3,17 @@ SRC = basics.c parser.c
 OBJ = basics.o parser.o
 CC = gcc
 CFLAGS = -Wall -Wextra -fsanitize=address -g
-all: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $@ $(CFLAGS)
+all: ${TARGET}
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+${TARGET}: ${OBJ}
+	${CC} ${OBJ} ${CFLAGS} -o ${TARGET}
+
+${OBJ}: ${SRC}
+	${CC} ${CFLAGS} -c ${SRC}
+
+clean-all:
+	rm -f ${OBJ} ${TARGET}
 
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f ${OBJ}

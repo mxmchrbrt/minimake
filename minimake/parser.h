@@ -13,7 +13,7 @@
 struct parse_data{
   char variable[100];
   char rule[100];
-  char dependencies[100];
+  char **dependencies;
   char variables_value[100];
   char command[100];
   char comment[200];
@@ -31,6 +31,10 @@ void free_lines(char **lines);
 struct data parsing(char **lines);
 struct parse_data parsing_aux(char *lines);
 void pretty_print(struct data final_data);
+
+void print_lines(char **lines);
+char *expand_variables_aux(char *line, struct data final_data);
+char **expand_variables(char **lines, struct data final_data);
 void execute_commands(struct data final_data);
 
 #endif
