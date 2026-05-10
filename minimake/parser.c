@@ -377,10 +377,11 @@ struct parse_data *find_rule(struct data final_data, char *name) {
 }
 
 
-void run_command(char *command) {
+int run_command(char *command, const char *rule_name) {
     char *cmd_copy = strdup(command);
     char *token = cmd_copy;
     char *next;
+    int ret = 0;
     while (1) {
         next = strstr(token, " && ");
         if (next) *next = '\0';
@@ -390,29 +391,40 @@ void run_command(char *command) {
 
         pid_t pid = fork();
         if (pid == 0) {
-            system(token);
-            exit(0);
+
+            char *args[] = { "/bin/sh", "-c", token, NULL };
+            execv("/bin/sh", args);
+
+            perror("execv");
+            exit(127);
         } else if (pid > 0) {
             int status;
             if (waitpid(pid, &status, 0) == -1) {
                 perror("waitpid");
-            } else {
-                if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-                    fprintf(stderr, "minimake: command failed (exit %d): %s\n",
-                            WEXITSTATUS(status), token);
-                    free(cmd_copy);
-                    return;
-                }
+                ret = 1;
+                break;
+            }
+            int exit_code = 0;
+            if (WIFEXITED(status))
+                exit_code = WEXITSTATUS(status);
+            else if (WIFSIGNALED(status))
+                exit_code = 128 + WTERMSIG(status);
+            if (exit_code != 0) {
+                fprintf(stderr, "minimake: *** [%s] Error %d\n",
+                        rule_name ? rule_name : "unknown", exit_code);
+                ret = exit_code;
+                break;
             }
         } else {
             perror("fork");
-            free(cmd_copy);
-            return;
+            ret = 1;
+            break;
         }
         if (!next) break;
         token = next + 4;
     }
     free(cmd_copy);
+    return ret;
 }
 
 static char *visited[100] = {NULL};
@@ -424,32 +436,50 @@ int already_visited(char *rule_name) {
     return 0;
 }
 
-void execute_rule(struct data final_data, char *rule_name) {
+int execute_rule(struct data final_data, char *rule_name) {
     struct parse_data *rule = find_rule(final_data, rule_name);
-    if (!rule) return;
-    if (already_visited(rule->rule)) return;
+    if (!rule) return 0;
+    if (already_visited(rule->rule)) return 0;
     
     visited[visited_count++] = rule->rule;
 
     if (rule->dependencies != NULL) {
         for (size_t j = 0; rule->dependencies[j] != NULL; j++) {
-            if (rule->dependencies[j][0] != '\0')
-                execute_rule(final_data, rule->dependencies[j]);
+            if (rule->dependencies[j][0] != '\0') {
+                int dep_ret = execute_rule(final_data, rule->dependencies[j]);
+                if (dep_ret != 0) return dep_ret;
+            }
         }
     }
 
     if (rule->command[0] != '\0')
-        run_command(rule->command);
+        return run_command(rule->command, rule->rule);
+    return 0;
 }
 
-void execute_commands(struct data final_data) {
-    if (!final_data.data) return;
+int execute_commands(struct data final_data, char **targets) {
+    if (!final_data.data) return 2;
     visited_count = 0;
+
+    if (targets && targets[0]) {
+        int ret = 0;
+        for (size_t t = 0; targets[t] != NULL; t++) {
+            struct parse_data *rule = find_rule(final_data, targets[t]);
+            if (!rule) {
+                fprintf(stderr, "minimake: *** No rule to make target '%s'. Stop.\n", targets[t]);
+                ret = 2;
+                continue;
+            }
+            int r = execute_rule(final_data, targets[t]);
+            if (r != 0) ret = r;
+        }
+        return ret;
+    }
 
     for (size_t i = 0; i < final_data.size; i++) {
         if (final_data.data[i].rule[0] != '\0') {
-            execute_rule(final_data, final_data.data[i].rule);
-            break;
+            return execute_rule(final_data, final_data.data[i].rule);
         }
     }
+    return 0;
 }

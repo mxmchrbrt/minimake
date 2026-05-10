@@ -2,6 +2,8 @@
 
 int main(int argc, char *argv[]){
   int option;
+
+  int err;
   char *file = "Makefile";
   int p_option = 0;
   int h_option = 0;
@@ -68,25 +70,25 @@ int main(int argc, char *argv[]){
           return 2;
       }
   }
-  if (p_option == 0 && !h_option){
+  if (p_option == 0 && !h_option) {
     char **lines = read_all_lines(file);
     clean_lines(lines);
     final_data = parsing(lines);
-    
+
     lines = expand_variables(lines, final_data);
 
-
     for (size_t i = 0; i < final_data.size; i++)
-      free_lines(final_data.data[i].dependencies);
+        free_lines(final_data.data[i].dependencies);
     free(final_data.data);
 
     struct data final_data_new = parsing(lines);
-    execute_commands(final_data_new);
 
+    char **targets = (optind < argc) ? &argv[optind] : NULL;
+    err = execute_commands(final_data_new, targets);
     for (size_t i = 0; i < final_data_new.size; i++)
         free_lines(final_data_new.data[i].dependencies);
     free(final_data_new.data);
     free_lines(lines);
-  }
-  return 0;
+  } 
+  return err;
 }
