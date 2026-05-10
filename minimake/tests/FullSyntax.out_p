@@ -1,0 +1,21 @@
+# variables
+'SIMPLE_VAR' = 'coucou'
+'var2' = 'coucou3'
+'toto' = 'allo '
+'SPACES_BEFORE_TAB' = 'var_beginning	var_end'
+'B' = 'B_var_beginning	B_var_end'
+
+# rules
+(sparse_rule): [depa] [depb]
+	'command 1'
+	'command 2'
+(packed_rule): [depa] [depb]
+	'command 1'
+	'command 2'
+(command_space_rule): [depa] [depb]
+	'echo spaces before'
+	'echo spaces after    '
+(simple_rule): [simple_dep]
+(no_dep_rule):
+(variable_rule): [beginning] [coucou] [end]
+	'echo "shouldn't be expanded: ${SIMPLE_VAR}"'

@@ -1,4 +1,3 @@
 MSG = world
-
 all:
 	echo ${MSG}

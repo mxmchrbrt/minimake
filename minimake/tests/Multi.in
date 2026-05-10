@@ -1,8 +1,8 @@
 CC = gcc
-CFLAGS = -Wall
-TARGET = hello
+FLAGS = -Wall
 
 all: hello
+	echo done
+
 hello:
-	echo Building
-	echo Done
+	echo Hello

@@ -1,0 +1,2 @@
+all: ${UNDEFINED_DEP}
+	echo hello

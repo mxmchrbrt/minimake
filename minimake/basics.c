@@ -2,27 +2,24 @@
 
 static void expand_struct(struct data *fd) {
     for (size_t i = 0; i < fd->size; i++) {
+        struct data before;
+        before.data = fd->data;
+        before.size = i;
+        before.cap  = fd->cap;
 
         if (fd->data[i].variables_value) {
-            char *e = expand_variables_aux(fd->data[i].variables_value, *fd);
+            char *e = expand_variables_aux(fd->data[i].variables_value, before);
             if (e) { free(fd->data[i].variables_value); fd->data[i].variables_value = e; }
         }
 
-        if (fd->data[i].commands) {
-            for (size_t j = 0; fd->data[i].commands[j]; j++) {
-                char *e = expand_variables_aux(fd->data[i].commands[j], *fd);
-                if (e) { free(fd->data[i].commands[j]); fd->data[i].commands[j] = e; }
-            }
-        }
-
         if (fd->data[i].rule && fd->data[i].rule[0] != '\0') {
-            char *e = expand_variables_aux(fd->data[i].rule, *fd);
+            char *e = expand_variables_aux(fd->data[i].rule, before);
             if (e) { free(fd->data[i].rule); fd->data[i].rule = e; }
         }
 
         if (fd->data[i].dependencies) {
             for (size_t j = 0; fd->data[i].dependencies[j]; j++) {
-                char *e = expand_variables_aux(fd->data[i].dependencies[j], *fd);
+                char *e = expand_variables_aux(fd->data[i].dependencies[j], before);
                 if (e) {
                     free(fd->data[i].dependencies[j]);
                     fd->data[i].dependencies[j] = e;
@@ -71,7 +68,8 @@ static void expand_struct(struct data *fd) {
                 fd->data[i].dependencies = new_deps;
             }
         }
-        if (fd->data[i].rule && strchr(fd->data[i].rule, ' ')) {
+
+           if (fd->data[i].rule && strchr(fd->data[i].rule, ' ')) {
             char *rule_str = fd->data[i].rule;
             char *copy = strdup(rule_str);
             int ntok = 0;
@@ -125,6 +123,22 @@ static void expand_struct(struct data *fd) {
             skip_split:;
         }
     }
+
+   size_t wi = 0;
+    for (size_t i = 0; i < fd->size; i++) {
+        int drop = 0;
+
+        if (fd->data[i].variable && fd->data[i].variable[0] == '\0' &&
+            fd->data[i].rule && fd->data[i].rule[0] == '\0')
+            drop = 1;
+        if (drop) {
+            free_parse_data(&fd->data[i]);
+        } else {
+            if (wi != i) fd->data[wi] = fd->data[i];
+            wi++;
+        }
+    }
+    fd->size = wi;
 }
 
 int main(int argc, char *argv[]) {
@@ -152,12 +166,6 @@ int main(int argc, char *argv[]) {
         switch (option) {
         case 'h': break;
         case 'f': {
-            FILE *f = fopen(optarg, "r");
-            if (!f) {
-                printf("minimake: *** File does not exist. Stop.\n");
-                return 3;
-            }
-            fclose(f);
             file = optarg;
             break;
         }

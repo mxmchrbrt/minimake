@@ -3,4 +3,4 @@
 
 # rules
 (all):
-	'echo world'
+	'echo ${MSG}'

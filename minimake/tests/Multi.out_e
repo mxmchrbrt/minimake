@@ -1,4 +1,4 @@
-echo Building
-Building
-echo Done
-Done
+echo Hello
+Hello
+echo done
+done

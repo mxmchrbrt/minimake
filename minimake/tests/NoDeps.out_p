@@ -1,4 +1,3 @@
-
 # rules
 (all):
 	'echo Hello'

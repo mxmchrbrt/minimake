@@ -189,6 +189,10 @@ struct data parsing(char **lines) {
             size_t nl = strlen(name_buf);
             while (nl > 0 && (name_buf[nl-1] == ' ' || name_buf[nl-1] == '\t')) nl--;
             name_buf[nl] = '\0';
+
+            char *name_start = name_buf;
+            while (*name_start == ' ' || *name_start == '\t') name_start++;
+            if (name_start != name_buf) memmove(name_buf, name_start, strlen(name_start) + 1);
             free(data.variable);
             data.variable = name_buf;
 
@@ -205,6 +209,14 @@ struct data parsing(char **lines) {
             size_t rule_len = colon - line;
             free(data.rule);
             data.rule = strndup(line, rule_len);
+            {
+                size_t rlen = strlen(data.rule);
+                while (rlen > 0 && (data.rule[rlen-1] == ' ' || data.rule[rlen-1] == '\t'))
+                    data.rule[--rlen] = '\0';
+                char *rstart = data.rule;
+                while (*rstart == ' ' || *rstart == '\t') rstart++;
+                if (rstart != data.rule) memmove(data.rule, rstart, strlen(rstart) + 1);
+            }
 
 
             char *deps_str = colon + 1;
@@ -275,19 +287,27 @@ void pretty_print(struct data fd) {
     int printed_var_header = 0;
     int printed_rule_header = 0;
 
+    int has_vars = 0;
     for (size_t i = 0; i < fd.size; i++) {
         if (fd.data[i].variable && fd.data[i].variable[0] != '\0') {
-            if (!printed_var_header) {
-                printf("# variables\n");
-                printed_var_header = 1;
-            }
-            printf("'%s' = '%s'\n",
-                   fd.data[i].variable,
-                   fd.data[i].variables_value ? fd.data[i].variables_value : "");
+            has_vars = 1;
+            break;
         }
     }
 
-    printf("\n");
+    if (has_vars) {
+        printf("# variables\n");
+        printed_var_header = 1;
+        for (size_t i = 0; i < fd.size; i++) {
+            if (fd.data[i].variable && fd.data[i].variable[0] != '\0') {
+                printf("'%s' = '%s'\n",
+                       fd.data[i].variable,
+                       fd.data[i].variables_value ? fd.data[i].variables_value : "");
+            }
+        }
+    }
+
+    if (printed_var_header) printf("\n");
 
     for (size_t i = 0; i < fd.size; i++) {
         if (fd.data[i].rule && fd.data[i].rule[0] != '\0') {
@@ -296,10 +316,10 @@ void pretty_print(struct data fd) {
                 printed_rule_header = 1;
             }
             if (fd.data[i].dependencies) {
-                printf("(%s): ", fd.data[i].rule);
+                printf("(%s):", fd.data[i].rule);
                 for (size_t j = 0; fd.data[i].dependencies[j]; j++) {
                     if (fd.data[i].dependencies[j][0] != '\0')
-                        printf("[%s] ", fd.data[i].dependencies[j]);
+                        printf(" [%s]", fd.data[i].dependencies[j]);
                 }
                 printf("\n");
             } else {
@@ -333,7 +353,7 @@ char *expand_variables_aux(char *line, struct data final_data) {
             name[k] = '\0';
 
             if (line[j] == '}' && k > 0) {
-                const char *val = "";
+                const char *val = NULL;
                 for (size_t z = 0; z < final_data.size; z++) {
                     if (final_data.data[z].variable &&
                         strcmp(name, final_data.data[z].variable) == 0) {
@@ -342,16 +362,19 @@ char *expand_variables_aux(char *line, struct data final_data) {
                         break;
                     }
                 }
-                size_t vlen = strlen(val);
-                if (pos + vlen + 1 > cap) {
-                    size_t nc = cap ? cap : 1;
-                    while (pos + vlen + 1 > nc) nc *= 2;
-                    char *tmp = realloc(out, nc);
-                    if (!tmp) { free(out); return NULL; }
-                    out = tmp; cap = nc;
+                if (val == NULL) {
+                } else {
+                    size_t vlen = strlen(val);
+                    if (pos + vlen + 1 > cap) {
+                        size_t nc = cap ? cap : 1;
+                        while (pos + vlen + 1 > nc) nc *= 2;
+                        char *tmp = realloc(out, nc);
+                        if (!tmp) { free(out); return NULL; }
+                        out = tmp; cap = nc;
+                    }
+                    memcpy(out + pos, val, vlen);
+                    pos += vlen;
                 }
-                memcpy(out + pos, val, vlen);
-                pos += vlen;
                 i = j;
                 continue;
             }
