@@ -1,17 +1,8 @@
-TARGET = minimake2
-SRC = basics.c parser.c
-OBJ = basics.o parser.o
-CC = gcc
-CFLAGS = -Wall -Wextra -fsanitize=address -g
-
-all: ${TARGET}
-
-${TARGET}: echo
-	${CC} ${OBJ} ${CFLAGS} -o ${TARGET}
-
-echo:
-	echo toto
-
-clean:
-	rm -f ${OBJ} ${TARGET}
-
+all: rule1
+	echo rule
+rule1: rule2
+	echo rule
+rule2: rule3
+	echo rule
+rule3:
+	echo rule

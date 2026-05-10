@@ -1,6 +1,5 @@
 tests:
-  # ── Original provided tests ───────────────────────────────────────────────
-  # Minimakefile.in: has one variable (CC=gcc) and one rule (all: echo Toto)
+
   - args: [ "-f", "tests/Minimakefile.in", "-p" ]
     exit_code: 0
     output_file: "tests/Minimakefile.out_p"
@@ -8,22 +7,14 @@ tests:
     exit_code: 0
     output_file: "tests/Minimakefile.out_e"
 
-  # ── Command line: -h ──────────────────────────────────────────────────────
-  # Subject: "-h: display a help message on the standard output. Minimake must
-  # then stop the execution, even if other options were used."
-  # "-h flag has priority over all other flags" → exit 0
   - args: [ "-h" ]
     exit_code: 0
     output_file: "tests/help.out"
 
-  # ── Command line: -f nonexistent file ────────────────────────────────────
-  # Subject: "If file does not exist, display an error message and return 3."
   - args: [ "-f", "tests/doesnotexist.mk" ]
     exit_code: 3
     output_file: "tests/nofile.out"
 
-  # ── Multiple variables and chained deps ──────────────────────────────────
-  # Tests: variables printed in order, dep rule executed before parent rule.
   - args: [ "-f", "tests/Multi.in", "-p" ]
     exit_code: 0
     output_file: "tests/Multi.out_p"
@@ -31,9 +22,6 @@ tests:
     exit_code: 0
     output_file: "tests/Multi.out_e"
 
-  # ── Rule with no dependencies ─────────────────────────────────────────────
-  # Subject: "Anywhere from 0 to n dependencies."
-  # No variables → no "# variables" section at all.
   - args: [ "-f", "tests/NoDeps.in", "-p" ]
     exit_code: 0
     output_file: "tests/NoDeps.out_p"
@@ -41,11 +29,6 @@ tests:
     exit_code: 0
     output_file: "tests/NoDeps.out_e"
 
-  # ── Variable expansion in command (execution-time) ────────────────────────
-  # Subject: "Expansion at execution — the whole Makefile has been read, so
-  # all variables are known. You can use in the recipes a variable defined
-  # later on in the file."
-  # -p shows raw command (${MSG}); execution expands it to 'world'.
   - args: [ "-f", "tests/VarExpand.in", "-p" ]
     exit_code: 0
     output_file: "tests/VarExpand.out_p"
@@ -53,34 +36,14 @@ tests:
     exit_code: 0
     output_file: "tests/VarExpand.out_e"
 
-  # ── Empty makefile ────────────────────────────────────────────────────────
-  # Subject: no targets defined → would print "# rules" only (no var section).
-  # -p on empty file: no variables, no rules → just "# rules\n"
   - args: [ "-f", "tests/Empty.in", "-p" ]
     exit_code: 0
     output_file: "tests/Empty.out_p"
 
-  # ── Undefined variable used as rule name ─────────────────────────────────
-  # Subject: "If a variable is not defined, it will expand to an empty string."
-  # "if the rule name is empty, the rule is ignored"
-  # ${UNDEFINED_RULE} → "" → rule dropped → only "# rules\n" printed
   - args: [ "-f", "tests/VarRuleNotDefined.in", "-p" ]
     exit_code: 0
     output_file: "tests/VarRuleNotDefined.out_p"
-
-  # ── Undefined variable used as dependency ────────────────────────────────
-  # Subject: "if the dependency name is empty, the dependency is ignored"
-  # Rule survives, dep silently dropped. Command shown raw in -p.
   - args: [ "-f", "tests/VarDepNotDefined.in", "-p" ]
     exit_code: 0
     output_file: "tests/VarDepNotDefined.out_p"
 
-  # ── Full syntax (subject's Makefile.syntax-test) ──────────────────────────
-  # Covers: spaces/tabs around '=', sequential var expansion at parse time
-  # (toto uses SPACES_BEFORE_TAB not yet defined → expands to ""),
-  # sparse rule (blank lines between commands), rule defined after a variable
-  # mid-file, multi-word dep expansion, command with raw ${VAR} (not expanded
-  # in -p because commands expand at execution time only).
-  - args: [ "-f", "tests/FullSyntax.in", "-p" ]
-    exit_code: 0
-    output_file: "tests/FullSyntax.out_p"

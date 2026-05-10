@@ -154,11 +154,11 @@ int main(int argc, char *argv[]) {
 
     if (h_option) {
         printf("Usage: minimake [OPTIONS] [TARGETS]\n"
-               "\tOPTIONS can be:\n"
-               "\t\t\"-h\"            to display the helper\n"
-               "\t\t\"-p\"            to print the rules and variables\n"
-               "\t\t\"-f\" <filename> to change the make config file, \"Makefile\" by default\n"
-               "\tTARGETS are target name of makefile rule to execute\n");
+               "    OPTIONS can be:\n"
+               "        \"-h\"            to display the helper\n"
+               "        \"-p\"            to print the rules and variables\n"
+               "        \"-f\" <filename> to change the make config file, \"Makefile\" by default\n"
+               "    TARGETS are target name of makefile rule to execute\n");
         return 0;
     }
 

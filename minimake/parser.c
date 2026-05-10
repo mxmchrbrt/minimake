@@ -287,11 +287,13 @@ void pretty_print(struct data fd) {
             break;
         }
     }
-
+ 
     if (has_vars) {
-        printf("# variables\n");
-        printed_var_header = 1;
         for (size_t i = 0; i < fd.size; i++) {
+          if (!printed_var_header){
+            printf("# variables\n");
+            printed_var_header = 1;
+          }
             if (fd.data[i].variable && fd.data[i].variable[0] != '\0') {
                 printf("'%s' = '%s'\n",
                        fd.data[i].variable,
@@ -299,15 +301,19 @@ void pretty_print(struct data fd) {
             }
         }
     }
+    else{
+       printf("# variables\n");
+       printed_var_header = 1;
+    }
 
     if (printed_var_header) printf("\n");
-
+    
     for (size_t i = 0; i < fd.size; i++) {
         if (fd.data[i].rule && fd.data[i].rule[0] != '\0') {
             if (!printed_rule_header) {
                 printf("# rules\n");
                 printed_rule_header = 1;
-            }
+            }        
             if (fd.data[i].dependencies) {
                 printf("(%s):", fd.data[i].rule);
                 for (size_t j = 0; fd.data[i].dependencies[j]; j++) {
@@ -324,7 +330,11 @@ void pretty_print(struct data fd) {
             }
         }
     }
+
+    if (!printed_var_header) printf("# variables\n\n");
     if (!printed_rule_header) printf("# rules\n");
+
+    return;
 }
 
 
