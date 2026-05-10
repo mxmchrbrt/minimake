@@ -133,8 +133,6 @@ struct data parsing(char **lines) {
     size_t i = 0;
     while (lines[i]) {
         char *line = lines[i];
-
-
         if (final_data.size >= final_data.cap) {
             size_t nc = final_data.cap * 2;
             struct parse_data *tmp = realloc(final_data.data, nc * sizeof(struct parse_data));
@@ -142,10 +140,7 @@ struct data parsing(char **lines) {
             final_data.data = tmp;
             final_data.cap  = nc;
         }
-
-
         if (line[0] == '\t') { i++; continue; }
-
         struct parse_data data;
         memset(&data, 0, sizeof(data));
         data.variable      = strdup("");
@@ -155,7 +150,6 @@ struct data parsing(char **lines) {
         data.dependencies  = NULL;
         data.commands      = NULL;
         data.line_pos      = (int)(i + 1);
-
 
         char *trimmed = line;
         while (*trimmed == ' ' || *trimmed == '\t') trimmed++;
@@ -248,7 +242,6 @@ struct data parsing(char **lines) {
                 }
             }
             free(deps_copy);
-
 
             size_t cnt_cmds = 0;
             size_t k = i + 1;
