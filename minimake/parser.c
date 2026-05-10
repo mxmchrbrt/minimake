@@ -377,6 +377,7 @@ struct parse_data *find_rule(struct data final_data, char *name) {
 }
 
 
+
 int run_command(char *command, const char *rule_name) {
     char *cmd_copy = strdup(command);
     char *token = cmd_copy;
@@ -436,6 +437,7 @@ int already_visited(char *rule_name) {
     return 0;
 }
 
+
 int execute_rule(struct data final_data, char *rule_name) {
     struct parse_data *rule = find_rule(final_data, rule_name);
     if (!rule) return 0;
@@ -461,6 +463,7 @@ int execute_commands(struct data final_data, char **targets) {
     if (!final_data.data) return 2;
     visited_count = 0;
 
+
     if (targets && targets[0]) {
         int ret = 0;
         for (size_t t = 0; targets[t] != NULL; t++) {
@@ -471,14 +474,16 @@ int execute_commands(struct data final_data, char **targets) {
                 continue;
             }
             int r = execute_rule(final_data, targets[t]);
-            if (r != 0) ret = r;
+            if (r != 0) ret = 2;
         }
         return ret;
     }
 
+
     for (size_t i = 0; i < final_data.size; i++) {
         if (final_data.data[i].rule[0] != '\0') {
-            return execute_rule(final_data, final_data.data[i].rule);
+            int r = execute_rule(final_data, final_data.data[i].rule);
+            return r != 0 ? 2 : 0;
         }
     }
     return 0;

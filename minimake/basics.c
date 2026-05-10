@@ -3,7 +3,7 @@
 int main(int argc, char *argv[]){
   int option;
 
-  int err;
+  int err = 0;
   char *file = "Makefile";
   int p_option = 0;
   int h_option = 0;
