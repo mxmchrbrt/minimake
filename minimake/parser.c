@@ -130,7 +130,7 @@ struct data parsing(char **lines){
   // dependencies 
     char *p4 = strchr(lines[i], ':');
     if (p4) {
-      char *tmp = strdup(p4 + 1);  // +1 not +2, skip only the ':'
+      char *tmp = strdup(p4 + 1);
       if (tmp) {
           size_t len = strlen(tmp);
           if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
@@ -188,6 +188,7 @@ struct data parsing(char **lines){
 
   }
     final_data.data = final_data_aux; 
+    // check if correct parsing
     /*for (size_t i = 0; i < final_data.size; i++){
       printf("\nLines %d\n",final_data.data[i].line_pos);
       printf("variable = %s\nrule = %s\ndependencies = %s\nvariables_value = %s\ncommand = %s\ncomment = %s\n", final_data.data[i].variable,final_data.data[i].rule,final_data.data[i].dependencies,final_data.data[i].variables_value,final_data.data[i].command,final_data.data[i].comment);
