@@ -9,8 +9,14 @@ all: ${TARGET}
 ${TARGET}: ${OBJ}
 	${CC} ${OBJ} ${CFLAGS} -o ${TARGET}
 
-${OBJ}: ${SRC}
+${OBJ}: 
 	${CC} ${CFLAGS} -c ${SRC}
+
+basics.o: 
+	${CC} ${CFLAGS} -c basics.c
+
+parser.o:
+	${CC} ${CFLAGS} -c parser.c
 
 clean-all:
 	rm -f ${OBJ} ${TARGET}

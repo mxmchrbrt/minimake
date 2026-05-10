@@ -3,18 +3,15 @@
 #include <string.h>
 #include "parser.h"
 
-char **read_all_lines(char *filename){
+char **read_all_lines(char *filename) {
     if (!filename) return NULL;
-    FILE *stream = fopen(filename,"r");
+    FILE *stream = fopen(filename, "r");
     if (!stream) return NULL;
 
-    size_t cap = 16;
-    size_t cnt = 0;
-    char **lines = calloc(cap,sizeof(char*));
-    if (!lines) {
-        fclose(stream);
-        return NULL;
-    }
+    size_t cap = 16, cnt = 0;
+    char **lines = calloc(cap, sizeof(char *));
+    if (!lines) { fclose(stream); return NULL; }
+
     char *buf = NULL;
     size_t n = 0;
     ssize_t len;
@@ -22,55 +19,42 @@ char **read_all_lines(char *filename){
         char *s = strdup(buf);
         if (!s) {
             free(buf);
-            for (size_t k = 0; k < cnt; ++k) free(lines[k]);
-            free(lines);
-            fclose(stream);
-            return NULL;
+            for (size_t k = 0; k < cnt; k++) free(lines[k]);
+            free(lines); fclose(stream); return NULL;
         }
         if (cnt + 1 >= cap) {
-            size_t newcap = cap * 2;
-            char **tmp = realloc(lines, newcap * sizeof(char*));
+            size_t nc = cap * 2;
+            char **tmp = realloc(lines, nc * sizeof(char *));
             if (!tmp) {
-                free(buf);
-                for (size_t k = 0; k < cnt; ++k) free(lines[k]);
-                free(lines);
-                fclose(stream);
-                return NULL;
+                free(s); free(buf);
+                for (size_t k = 0; k < cnt; k++) free(lines[k]);
+                free(lines); fclose(stream); return NULL;
             }
-
-            lines = tmp;
-            cap = newcap;
+            lines = tmp; cap = nc;
         }
-        lines[cnt] = s;
-        cnt++;
+        lines[cnt++] = s;
     }
     free(buf);
     lines[cnt] = NULL;
-    char **tmp = realloc(lines, (cnt + 1) * sizeof(char*));
+    char **tmp = realloc(lines, (cnt + 1) * sizeof(char *));
     if (tmp) lines = tmp;
     fclose(stream);
     return lines;
 }
 
-void free_lines(char **lines){
+void free_lines(char **lines) {
     if (!lines) return;
-    for (size_t i = 0; lines[i] != NULL; ++i) {
-        free(lines[i]);
-        lines[i] = NULL;
-    }
+    for (size_t i = 0; lines[i]; i++) { free(lines[i]); lines[i] = NULL; }
     free(lines);
 }
 
 char **split(char *str) {
     if (!str) return NULL;
-
     size_t count = 1;
-    for (size_t i = 0; str[i] != '\0'; i++)
+    for (size_t i = 0; str[i]; i++)
         if (str[i] == ' ') count++;
-
     char **result = calloc(count + 1, sizeof(char *));
     if (!result) return NULL;
-
     size_t idx = 0;
     char *start = str;
     for (size_t i = 0; ; i++) {
@@ -84,351 +68,360 @@ char **split(char *str) {
     return result;
 }
 
-struct data parsing(char **lines){
-  struct data final_data;
-  int found_rule = 0;
-  final_data.size = 0;
-  if (!lines) return final_data;
-
-  struct parse_data *final_data_aux = calloc(1000,sizeof(struct parse_data)); 
-  final_data.data = final_data_aux;
-  final_data.size = 0;
-  for (size_t i = 0; lines[i] != NULL; i++){
-    struct parse_data data;
-    strcpy(data.variable,"");
-    strcpy(data.rule,"");
-    strcpy(data.variables_value,"");
-    strcpy(data.command,"");
-    strcpy(data.comment,"");
-
-    // comment
-    char *p = strchr(lines[i], '#');
-    if (p) {
-      char *tmp = strdup(p + 1);
-      if (tmp) {
-        size_t len = strlen(tmp);
-        if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
-          strncpy(data.comment, tmp, sizeof(data.comment)-1);
-      data.comment[sizeof(data.comment)-1] = '\0';
-      free(tmp);
-    }
-  }
-
-  //definition
-    char *p3 = strchr(lines[i], '=');
-    if (p3) {
-    char *tmp = strdup(p3 + 2);
-    if (tmp) {
-      size_t len = strlen(tmp);
-      if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
-      strncpy(data.variables_value, tmp, sizeof(data.variables_value)-1);
-      data.variables_value[sizeof(data.variables_value)-1] = '\0';
-      free(tmp);
-      }
-
-    }  
-  // dependencies 
-    char *p4 = strchr(lines[i], ':');
-    if (p4) {
-      char *tmp = strdup(p4 + 1);
-      if (tmp) {
-          size_t len = strlen(tmp);
-          if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
-          char *deps_start = tmp;
-          if (deps_start[0] == ' ') deps_start++;
-          if (deps_start[0] != '\0') data.dependencies = split(deps_start);
-          else data.dependencies = NULL;
-        free(tmp);
-    }
+void free_parse_data(struct parse_data *pd) {
+    if (!pd) return;
+    free(pd->variable);      pd->variable = NULL;
+    free(pd->rule);          pd->rule = NULL;
+    free(pd->variables_value); pd->variables_value = NULL;
+    free(pd->comment);       pd->comment = NULL;
+    free_lines(pd->dependencies);
+    free_lines(pd->commands);
 }
 
-    for (size_t j = 0; lines[i][j] != '\0'; j++){
-    //variable name
-    if (strchr(lines[i],'=') != NULL){
-      sscanf(lines[i],"%[a-zA-Z0-9]=",data.variable); 
-    }
+char **clean_lines(char **lines) {
+    if (!lines) return NULL;
+    for (size_t i = 0; lines[i]; i++) {
+        char *src = lines[i];
 
+        if (src[0] == '\t') continue;
 
-}    
-    //rule
-    char *p5 = strchr(lines[i], ':');
-    if (p5) {
-      found_rule = 1;
-      size_t rule_len = p5 - lines[i];
-      strncpy(data.rule, lines[i], rule_len);
-      data.rule[rule_len] = '\0';
-    }
-
-
-   //command
-    if (found_rule == 1) {
-      char command_buf[1024] = "";
-      size_t k = i + 1;
-      int first = 1;
-      while (lines[k] && lines[k][0] == '\t') {
-        char *tmp = strdup(lines[k] + 1);
-        if (tmp) {
-            size_t len = strlen(tmp);
-            if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
-            if (!first) strncat(command_buf, " && ", sizeof(command_buf) - strlen(command_buf) - 1);
-            strncat(command_buf, tmp, sizeof(command_buf) - strlen(command_buf) - 1);
-            free(tmp);
-            first = 0;
+        char *dst = lines[i];
+        size_t k = 0;
+        for (size_t j = 0; src[j]; j++) {
+            dst[k++] = src[j];
         }
-        k++;
+        dst[k] = '\0';
     }
-      strncpy(data.command, command_buf, sizeof(data.command) - 1);
-      data.command[sizeof(data.command) - 1] = '\0';
-    } 
-    found_rule = 0;
-    final_data_aux[i] = data;
-    final_data_aux[i].line_pos = i+1;
-    data.dependencies = NULL;
-    final_data.size++;
+    return lines;
+}
 
-  }
-    final_data.data = final_data_aux; 
-    // check if correct parsing
-    /*for (size_t i = 0; i < final_data.size; i++){
-      printf("\nLines %d\n",final_data.data[i].line_pos);
-      printf("variable = %s\nrule = %s\ndependencies = %s\nvariables_value = %s\ncommand = %s\ncomment = %s\n", final_data.data[i].variable,final_data.data[i].rule,final_data.data[i].dependencies,final_data.data[i].variables_value,final_data.data[i].command,final_data.data[i].comment);
-    }*/
+void print_lines(char **lines) {
+    if (!lines) return;
+    for (size_t i = 0; lines[i]; i++) printf("%s", lines[i]);
+}
+
+
+static void strip_nl(char *s) {
+    if (!s) return;
+    size_t l = strlen(s);
+    if (l > 0 && s[l-1] == '\n') s[l-1] = '\0';
+}
+
+
+static char **arr_append(char **arr, size_t *cnt, char *val) {
+    char **tmp = realloc(arr, (*cnt + 2) * sizeof(char *));
+    if (!tmp) { free(val); return arr; }
+    tmp[*cnt] = val;
+    (*cnt)++;
+    tmp[*cnt] = NULL;
+    return tmp;
+}
+
+struct data parsing(char **lines) {
+    struct data final_data;
+    final_data.size = 0;
+    final_data.cap  = 0;
+    final_data.data = NULL;
+    if (!lines) return final_data;
+
+    size_t cap = 64;
+    struct parse_data *arr = calloc(cap, sizeof(struct parse_data));
+    if (!arr) return final_data;
+    final_data.data = arr;
+    final_data.cap  = cap;
+
+    size_t i = 0;
+    while (lines[i]) {
+        char *line = lines[i];
+
+
+        if (final_data.size >= final_data.cap) {
+            size_t nc = final_data.cap * 2;
+            struct parse_data *tmp = realloc(final_data.data, nc * sizeof(struct parse_data));
+            if (!tmp) break;
+            final_data.data = tmp;
+            final_data.cap  = nc;
+        }
+
+
+        if (line[0] == '\t') { i++; continue; }
+
+        struct parse_data data;
+        memset(&data, 0, sizeof(data));
+        data.variable      = strdup("");
+        data.rule          = strdup("");
+        data.variables_value = strdup("");
+        data.comment       = strdup("");
+        data.dependencies  = NULL;
+        data.commands      = NULL;
+        data.line_pos      = (int)(i + 1);
+
+
+        char *trimmed = line;
+        while (*trimmed == ' ' || *trimmed == '\t') trimmed++;
+        if (*trimmed == '\0' || *trimmed == '\n') {
+            free_parse_data(&data);
+            i++;
+            continue;
+        }
+
+
+        char *cp = strchr(line, '#');
+        if (cp) {
+            free(data.comment);
+            data.comment = strdup(cp + 1);
+            strip_nl(data.comment);
+        }
+
+
+        char *colon = strchr(line, ':');
+        char *eq    = strchr(line, '=');
+
+        int is_rule = 0, is_var = 0;
+        if (colon && (!eq || colon < eq)) is_rule = 1;
+        else if (eq)                       is_var  = 1;
+
+        if (is_var) {
+
+            size_t name_len = eq - line;
+            char *name_buf = strndup(line, name_len);
+
+            size_t nl = strlen(name_buf);
+            while (nl > 0 && (name_buf[nl-1] == ' ' || name_buf[nl-1] == '\t')) nl--;
+            name_buf[nl] = '\0';
+            free(data.variable);
+            data.variable = name_buf;
+
+
+            char *val_start = eq + 1;
+            while (*val_start == ' ' || *val_start == '\t') val_start++;
+            free(data.variables_value);
+            data.variables_value = strdup(val_start);
+            strip_nl(data.variables_value);
+        }
+
+        if (is_rule) {
+
+            size_t rule_len = colon - line;
+            free(data.rule);
+            data.rule = strndup(line, rule_len);
+
+
+            char *deps_str = colon + 1;
+
+            char *deps_copy = strdup(deps_str);
+            strip_nl(deps_copy);
+            char *hash = strchr(deps_copy, '#');
+            if (hash) *hash = '\0';
+
+            char *ds = deps_copy;
+            while (*ds == ' ' || *ds == '\t') ds++;
+
+            if (*ds != '\0') {
+                data.dependencies = split(ds);
+
+                if (data.dependencies) {
+                    size_t wi = 0;
+                    for (size_t ri = 0; data.dependencies[ri]; ri++) {
+                        if (data.dependencies[ri][0] != '\0')
+                            data.dependencies[wi++] = data.dependencies[ri];
+                        else
+                            free(data.dependencies[ri]);
+                    }
+                    data.dependencies[wi] = NULL;
+                    if (wi == 0) {
+                        free(data.dependencies);
+                        data.dependencies = NULL;
+                    }
+                }
+            }
+            free(deps_copy);
+
+
+            size_t cnt_cmds = 0;
+            size_t k = i + 1;
+            while (lines[k]) {
+                char *cl = lines[k];
+                if (cl[0] == '\t') {
+
+                    char *cmd_line = cl + 1;
+                    char *cmd = strdup(cmd_line);
+                    strip_nl(cmd);
+                    data.commands = arr_append(data.commands, &cnt_cmds, cmd);
+                    k++;
+                } else {
+
+                    char *tr = cl;
+                    while (*tr == ' ' || *tr == '\t') tr++;
+                    if (*tr == '\0' || *tr == '\n' || *tr == '#') {
+                        k++;
+                        continue;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        final_data.data[final_data.size] = data;
+        final_data.size++;
+        i++;
+    }
     return final_data;
 }
 
 
-char **clean_lines(char **lines){ //remove spaces except those after ':' or after a '\t' or after '=' 
-  if (!lines) return NULL;
-  for (size_t i = 0; lines[i] != NULL; ++i) {
-    char *src = lines[i];
-    char *dst = lines[i];
-    size_t k = 0;
-    int after_colon = 0;
-    int after_tab = 0;
-    int after_eq = 0;
-    for (size_t j = 0; src[j] != '\0'; ++j) {
-      if (src[j] == ':') {
-        after_colon = 1;
-        dst[k++] = src[j];
-      } else if (src[j] == '\t') {
-        after_tab = 1;
-        dst[k++] = src[j];
-      } else if (src[j] == '=') {
-        after_eq = 1;
-        dst[k++] = src[j];
-      } else if (src[j] == ' ') {
-        if (after_colon || after_tab || after_eq) dst[k++] = src[j];
-      } else {
-        dst[k++] = src[j];
-      }
-    }
-    dst[k] = '\0';
-  }
-  return lines;
-}
+void pretty_print(struct data fd) {
+    int printed_var_header = 0;
+    int printed_rule_header = 0;
 
-void print_lines(char **lines){
-  if (!lines) return;
-  for (size_t i = 0; lines[i] != NULL; i++) {
-    char *cur_line = lines[i];
-    printf("%s",cur_line);
-  }
-  return;
-}
-
-void pretty_print(struct data final_data){
-  int variables = 0;
-  int rules = 0;
-  for (size_t i = 0; i < final_data.size; i++){
-    if (final_data.data[i].variable[0] != '\0'){
-      if (!variables){
-        printf("# variables\n");
-        variables = 1;
-      }
-      printf("'%s' = '%s'\n",final_data.data[i].variable,final_data.data[i].variables_value);
-    }
-    if (final_data.data[i].rule[0] != '\0'){
-      if (!rules){
-          printf("\n# rules\n");
-          rules = 1;
-      }
-
-      if (final_data.data[i].dependencies != NULL) {
-        printf("(%s): ", final_data.data[i].rule);
-        for (size_t j = 0; final_data.data[i].dependencies[j] != NULL; j++) {
-          if (final_data.data[i].dependencies[j][0] != '\0')
-            printf("[%s] ", final_data.data[i].dependencies[j]);
-          }
-        printf("\n");
-      }
-
-      else {
-        printf("(%s):\n", final_data.data[i].rule);
-      } 
-
-      if (final_data.data[i].command[0] != '\0') {
-      char *cmd = strdup(final_data.data[i].command);
-      char *token = cmd;
-      char *next;
-      while ((next = strstr(token, " && ")) != NULL) {
-        *next = '\0';
-        printf("\t'%s'\n", token);
-        token = next + 4;
-      }
-      printf("\t'%s'\n", token);
-      free(cmd);
-      } 
-    }
-  }
-}
-char *expand_variables_aux(char *line, struct data final_data){
-  if (!line) return NULL;
-  size_t in_len = strlen(line);
-  size_t cap = in_len + 1;
-  char *out = calloc(cap,1);
-  if (!out) return NULL;
-  size_t pos = 0;
-
-  for (size_t i = 0; line[i] != '\0'; ++i) {
-    if (line[i] == '$' && line[i+1] == '{') {
-      size_t j = i + 2;
-      char name[256];
-      size_t k = 0;
-      while (line[j] != '\0' && line[j] != '}' && k + 1 < sizeof(name)) {
-        name[k++] = line[j++];
-      }
-      name[k] = '\0';
-
-      if (line[j] == '}' && k > 0) {
-        const char *val = "";
-        for (size_t z = 0; z < final_data.size; ++z) {
-          if (strcmp(name, final_data.data[z].variable) == 0) {
-            val = final_data.data[z].variables_value;
-            break;
-          }
+    for (size_t i = 0; i < fd.size; i++) {
+        if (fd.data[i].variable && fd.data[i].variable[0] != '\0') {
+            if (!printed_var_header) {
+                printf("# variables\n");
+                printed_var_header = 1;
+            }
+            printf("'%s' = '%s'\n",
+                   fd.data[i].variable,
+                   fd.data[i].variables_value ? fd.data[i].variables_value : "");
         }
-        size_t vlen = strlen(val);
-        if (pos + vlen + 1 > cap) {
-          size_t newcap = cap ? cap : 1;
-          while (pos + vlen + 1 > newcap) newcap *= 2;
-          char *tmp = realloc(out, newcap);
-          if (!tmp) { free(out); return NULL; }
-          out = tmp; cap = newcap;
+    }
+
+    printf("\n");
+
+    for (size_t i = 0; i < fd.size; i++) {
+        if (fd.data[i].rule && fd.data[i].rule[0] != '\0') {
+            if (!printed_rule_header) {
+                printf("# rules\n");
+                printed_rule_header = 1;
+            }
+            if (fd.data[i].dependencies) {
+                printf("(%s): ", fd.data[i].rule);
+                for (size_t j = 0; fd.data[i].dependencies[j]; j++) {
+                    if (fd.data[i].dependencies[j][0] != '\0')
+                        printf("[%s] ", fd.data[i].dependencies[j]);
+                }
+                printf("\n");
+            } else {
+                printf("(%s):\n", fd.data[i].rule);
+            }
+            if (fd.data[i].commands) {
+                for (size_t j = 0; fd.data[i].commands[j]; j++)
+                    printf("\t'%s'\n", fd.data[i].commands[j]);
+            }
         }
-        memcpy(out + pos, val, vlen);
-        pos += vlen;
-        i = j;
-        continue;
-      }
-
     }
-
-    if (pos + 2 > cap) {
-      size_t newcap = cap ? cap * 2 : 64;
-      char *tmp = realloc(out, newcap);
-      if (!tmp){ free(out); return NULL; }
-      out = tmp; cap = newcap;
-    }
-    out[pos++] = line[i];
-  }
-  out[pos] = '\0';
-  return out;
+    if (!printed_rule_header) printf("# rules\n");
 }
 
-char **expand_variables(char **lines, struct data final_data){
-  if (!lines) return NULL;
 
-  for (size_t i = 0; i < final_data.size; ++i){
-    char *old = lines[i];
-    char *new = expand_variables_aux(old, final_data);
-    if (new) {
-      free(old);
-      lines[i] = new;
+char *expand_variables_aux(char *line, struct data final_data) {
+    if (!line) return NULL;
+    size_t in_len = strlen(line);
+    size_t cap = in_len + 1;
+    char *out = calloc(cap, 1);
+    if (!out) return NULL;
+    size_t pos = 0;
+
+    for (size_t i = 0; line[i]; i++) {
+        if (line[i] == '$' && line[i+1] == '{') {
+            size_t j = i + 2;
+            char name[256];
+            size_t k = 0;
+            while (line[j] && line[j] != '}' && k + 1 < sizeof(name))
+                name[k++] = line[j++];
+            name[k] = '\0';
+
+            if (line[j] == '}' && k > 0) {
+                const char *val = "";
+                for (size_t z = 0; z < final_data.size; z++) {
+                    if (final_data.data[z].variable &&
+                        strcmp(name, final_data.data[z].variable) == 0) {
+                        val = final_data.data[z].variables_value
+                              ? final_data.data[z].variables_value : "";
+                        break;
+                    }
+                }
+                size_t vlen = strlen(val);
+                if (pos + vlen + 1 > cap) {
+                    size_t nc = cap ? cap : 1;
+                    while (pos + vlen + 1 > nc) nc *= 2;
+                    char *tmp = realloc(out, nc);
+                    if (!tmp) { free(out); return NULL; }
+                    out = tmp; cap = nc;
+                }
+                memcpy(out + pos, val, vlen);
+                pos += vlen;
+                i = j;
+                continue;
+            }
+
+        }
+        if (pos + 2 > cap) {
+            size_t nc = cap ? cap * 2 : 64;
+            char *tmp = realloc(out, nc);
+            if (!tmp) { free(out); return NULL; }
+            out = tmp; cap = nc;
+        }
+        out[pos++] = line[i];
     }
-  }
+    out[pos] = '\0';
+    return out;
+}
 
-  return lines;
-}       
+char **expand_variables(char **lines, struct data final_data) {
+    if (!lines) return NULL;
+    for (size_t i = 0; lines[i]; i++) {
 
-
+        if (lines[i][0] == '\t') continue;
+        char *old = lines[i];
+        char *new = expand_variables_aux(old, final_data);
+        if (new) { free(old); lines[i] = new; }
+    }
+    return lines;
+}
 
 struct parse_data *find_rule(struct data final_data, char *name) {
+    if (!name || name[0] == '\0') return NULL;
     for (size_t i = 0; i < final_data.size; i++) {
-        if (final_data.data[i].rule[0] == '\0') continue;
-
+        if (!final_data.data[i].rule || final_data.data[i].rule[0] == '\0')
+            continue;
         if (strcmp(final_data.data[i].rule, name) == 0)
             return &final_data.data[i];
-
-        char *rule_copy = strdup(final_data.data[i].rule);
-        char **tokens = split(rule_copy);
-        if (tokens) {
-            for (size_t j = 0; tokens[j] != NULL; j++) {
-                if (strcmp(tokens[j], name) == 0) {
-                    free_lines(tokens);
-                    free(rule_copy);
-                    return &final_data.data[i];
-                }
-            }
-            free_lines(tokens);
-        }
-        free(rule_copy);
     }
     return NULL;
 }
 
-
-
 int run_command(char *command, const char *rule_name) {
-    char *cmd_copy = strdup(command);
-    char *token = cmd_copy;
-    char *next;
-    int ret = 0;
-    while (1) {
-        next = strstr(token, " && ");
-        if (next) *next = '\0';
+    printf("%s\n", command);
+    fflush(stdout);
 
-        printf("%s\n", token);
-        fflush(stdout);
-
-        pid_t pid = fork();
-        if (pid == 0) {
-
-            char *args[] = { "/bin/sh", "-c", token, NULL };
-            execv("/bin/sh", args);
-
-            perror("execv");
-            exit(127);
-        } else if (pid > 0) {
-            int status;
-            if (waitpid(pid, &status, 0) == -1) {
-                perror("waitpid");
-                ret = 1;
-                break;
-            }
-            int exit_code = 0;
-            if (WIFEXITED(status))
-                exit_code = WEXITSTATUS(status);
-            else if (WIFSIGNALED(status))
-                exit_code = 128 + WTERMSIG(status);
-            if (exit_code != 0) {
-                fprintf(stderr, "minimake: *** [%s] Error %d\n",
-                        rule_name ? rule_name : "unknown", exit_code);
-                ret = exit_code;
-                break;
-            }
-        } else {
-            perror("fork");
-            ret = 1;
-            break;
+    pid_t pid = fork();
+    if (pid == 0) {
+        char *args[] = { "/bin/sh", "-c", command, NULL };
+        execv("/bin/sh", args);
+        perror("execv");
+        exit(127);
+    } else if (pid > 0) {
+        int status;
+        if (waitpid(pid, &status, 0) == -1) { perror("waitpid"); return 1; }
+        int exit_code = 0;
+        if (WIFEXITED(status))   exit_code = WEXITSTATUS(status);
+        else if (WIFSIGNALED(status)) exit_code = 128 + WTERMSIG(status);
+        if (exit_code != 0) {
+            printf("minimake: *** [%s] Error %d\n",
+                   rule_name ? rule_name : "unknown", exit_code);
+            fflush(stdout);
+            return exit_code;
         }
-        if (!next) break;
-        token = next + 4;
+        return 0;
+    } else {
+        perror("fork");
+        return 1;
     }
-    free(cmd_copy);
-    return ret;
 }
 
-static char *visited[100] = {NULL};
+static char *visited[1024] = {NULL};
 static size_t visited_count = 0;
 
 int already_visited(char *rule_name) {
@@ -437,54 +430,67 @@ int already_visited(char *rule_name) {
     return 0;
 }
 
-
-int execute_rule(struct data final_data, char *rule_name) {
+int execute_rule(struct data final_data, char *rule_name, const char *needed_by) {
     struct parse_data *rule = find_rule(final_data, rule_name);
-    if (!rule) return 0;
+    if (!rule) {
+        struct stat st;
+        if (stat(rule_name, &st) == 0)
+            return 0;
+        if (needed_by)
+            printf("minimake: *** No rule to make target '%s', needed by '%s'.  Stop.\n",
+                   rule_name, needed_by);
+        else
+            printf("minimake: *** No rule to make target '%s'.  Stop.\n", rule_name);
+        fflush(stdout);
+        return 2;
+    }
     if (already_visited(rule->rule)) return 0;
-    
     visited[visited_count++] = rule->rule;
 
-    if (rule->dependencies != NULL) {
-        for (size_t j = 0; rule->dependencies[j] != NULL; j++) {
+    if (rule->dependencies) {
+        for (size_t j = 0; rule->dependencies[j]; j++) {
             if (rule->dependencies[j][0] != '\0') {
-                int dep_ret = execute_rule(final_data, rule->dependencies[j]);
-                if (dep_ret != 0) return dep_ret;
+                int r = execute_rule(final_data, rule->dependencies[j], rule->rule);
+                if (r != 0) return r;
             }
         }
     }
 
-    if (rule->command[0] != '\0')
-        return run_command(rule->command, rule->rule);
+    if (rule->commands) {
+        for (size_t j = 0; rule->commands[j]; j++) {
+            char *cmd = expand_variables_aux(rule->commands[j], final_data);
+            if (!cmd) cmd = strdup(rule->commands[j]);
+            int r = run_command(cmd, rule->rule);
+            free(cmd);
+            if (r != 0) return r;
+        }
+    }
     return 0;
 }
 
 int execute_commands(struct data final_data, char **targets) {
-    if (!final_data.data) return 2;
+    if (!final_data.data) {
+        printf("minimake: *** No targets.  Stop.\n");
+        return 2;
+    }
     visited_count = 0;
-
 
     if (targets && targets[0]) {
         int ret = 0;
-        for (size_t t = 0; targets[t] != NULL; t++) {
-            struct parse_data *rule = find_rule(final_data, targets[t]);
-            if (!rule) {
-                fprintf(stderr, "minimake: *** No rule to make target '%s'. Stop.\n", targets[t]);
-                ret = 2;
-                continue;
-            }
-            int r = execute_rule(final_data, targets[t]);
+        for (size_t t = 0; targets[t]; t++) {
+            int r = execute_rule(final_data, targets[t], NULL);
             if (r != 0) ret = 2;
         }
         return ret;
     }
 
-
     for (size_t i = 0; i < final_data.size; i++) {
-        if (final_data.data[i].rule[0] != '\0') {
-            int r = execute_rule(final_data, final_data.data[i].rule);
+        if (final_data.data[i].rule && final_data.data[i].rule[0] != '\0') {
+            int r = execute_rule(final_data, final_data.data[i].rule, NULL);
             return r != 0 ? 2 : 0;
         }
     }
-    return 0;
+
+    printf("minimake: *** No targets.  Stop.\n");
+    return 2;
 }
