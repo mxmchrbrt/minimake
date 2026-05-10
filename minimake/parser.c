@@ -161,19 +161,25 @@ struct data parsing(char **lines){
 
 
    //command
-    if (lines[i+1] && found_rule == 1){
-      char *p2 = strchr(lines[i+1], '\t');
-      if (p2) {
-        char *tmp = strdup(p2 + 1);
+    if (found_rule == 1) {
+      char command_buf[1024] = "";
+      size_t k = i + 1;
+      int first = 1;
+      while (lines[k] && lines[k][0] == '\t') {
+        char *tmp = strdup(lines[k] + 1);
         if (tmp) {
-          size_t len = strlen(tmp);
-          if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
-          strncpy(data.command, tmp, sizeof(data.command)-1);
-          data.command[sizeof(data.command)-1] = '\0';
-          free(tmp);
+            size_t len = strlen(tmp);
+            if (len > 0 && tmp[len-1] == '\n') tmp[len-1] = '\0';
+            if (!first) strncat(command_buf, " && ", sizeof(command_buf) - strlen(command_buf) - 1);
+            strncat(command_buf, tmp, sizeof(command_buf) - strlen(command_buf) - 1);
+            free(tmp);
+            first = 0;
         }
-      }
+        k++;
     }
+      strncpy(data.command, command_buf, sizeof(data.command) - 1);
+      data.command[sizeof(data.command) - 1] = '\0';
+    } 
     found_rule = 0;
     final_data_aux[i] = data;
     final_data_aux[i].line_pos = i+1;
@@ -254,9 +260,18 @@ void pretty_print(struct data final_data){
         }
       printf("\n");
       }
-      if (final_data.data[i].command[0] != '\0'){
-        printf("\t'%s'\n",final_data.data[i].command);
+      if (final_data.data[i].command[0] != '\0') {
+      char *cmd = strdup(final_data.data[i].command);
+      char *token = cmd;
+      char *next;
+      while ((next = strstr(token, " && ")) != NULL) {
+        *next = '\0';
+        printf("\t'%s'\n", token);
+        token = next + 4;
       }
+      printf("\t'%s'\n", token);
+      free(cmd);
+      } 
     }
   }
 
@@ -329,39 +344,54 @@ char **expand_variables(char **lines, struct data final_data){
   return lines;
 }       
 
-void execute_commands(struct data final_data){
-    if (!final_data.data) return;
-    char *commands[100];
-    //size_t last_rule = //number of rules;
-    size_t last_rule = 1;//number of rules;
-    // Function that check if a rule a dependencies with a while until NULL dependencies, while looping store commands in an array from last number of rules (code with number of rules) to 0 then exec commands in the following order last rule to 0. 
-    size_t i = last_rule;
-    for (i; i > 0 ; i--){
-    if (!commands) return;
-    printf("%s\n", commands[i]);
-    fflush(stdout);
-
-    pid_t pid = fork();
-    if (pid == 0) {
-      system(commands[i]);
+size_t number_of_rules(struct data final_data) {
+    size_t count = 0;
+    for (size_t i = 0; i < final_data.size; i++) {
+        if (final_data.data[i].rule[0] != '\0')
+            count++;
     }
-    else if (pid > 0) {
-      int status;
-      if (waitpid(pid, &status, 0) == -1) {
-        perror("waitpid");
-      }
-      else {
-        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-          fprintf(stderr, "minimake: command failed (exit %d): %s\n", WEXITSTATUS(status), commands[i]);
-        }
-      }
-      free(commands[i]);
-    }
-    else {
-      perror("fork");
-      free(commands[i]);
-      }
-    }
-    return;
+    return count;
 }
 
+void execute_commands(struct data final_data) {
+    if (!final_data.data) return;
+
+    size_t last_rule = number_of_rules(final_data);
+    if (last_rule == 0) return;
+
+    char *commands[100] = {NULL};
+
+    size_t idx = 0;
+    for (size_t i = 0; i < final_data.size && idx < 100; i++) {
+        if (final_data.data[i].rule[0] != '\0' && final_data.data[i].command[0] != '\0') {
+            commands[idx] = final_data.data[i].command;
+            idx++;
+        }
+    }
+
+    for (size_t i = idx; i > 0; i--) {
+        if (!commands[i-1]) continue;
+        printf("%s\n", commands[i-1]);
+        fflush(stdout);
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            system(commands[i-1]);
+            exit(0);
+        } else if (pid > 0) {
+            int status;
+            if (waitpid(pid, &status, 0) == -1) {
+                perror("waitpid");
+            } else {
+                if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+                    fprintf(stderr, "minimake: command failed (exit %d): %s\n",
+                            WEXITSTATUS(status), commands[i-1]);
+                    return;
+                }
+            }
+        } else {
+            perror("fork");
+            return;
+        }
+    }
+}

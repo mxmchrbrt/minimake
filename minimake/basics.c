@@ -80,7 +80,7 @@ int main(int argc, char *argv[]){
     free(final_data.data);
 
     struct data final_data_new = parsing(lines);
-    //execute_commands(final_data_new);
+    execute_commands(final_data_new);
 
     for (size_t i = 0; i < final_data_new.size; i++)
         free_lines(final_data_new.data[i].dependencies);

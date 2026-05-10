@@ -6,7 +6,9 @@ CFLAGS = -Wall -Wextra -fsanitize=address -g
 all: ${TARGET}
 
 ${TARGET}: ${OBJ}
+	echo toto
 	${CC} ${OBJ} $(CFLAGS) -o $(TARGET)
+
 
 ${OBJ}: ${SRC}
 	${CC} ${CFLAGS} -c ${SRC}
