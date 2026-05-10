@@ -252,15 +252,20 @@ void pretty_print(struct data final_data){
           printf("\n# rules\n");
           rules = 1;
       }
-      printf("(%s): ", final_data.data[i].rule);
+
       if (final_data.data[i].dependencies != NULL) {
-          for (size_t j = 0; final_data.data[i].dependencies[j] != NULL; j++) {
-              if (final_data.data[i].dependencies[j][0] != '\0')
-                  printf("[%s] ", final_data.data[i].dependencies[j]);
+        printf("(%s): ", final_data.data[i].rule);
+        for (size_t j = 0; final_data.data[i].dependencies[j] != NULL; j++) {
+          if (final_data.data[i].dependencies[j][0] != '\0')
+            printf("[%s] ", final_data.data[i].dependencies[j]);
           }
-        }
-      printf("\n");
+        printf("\n");
       }
+
+      else {
+        printf("(%s):\n", final_data.data[i].rule);
+      } 
+
       if (final_data.data[i].command[0] != '\0') {
       char *cmd = strdup(final_data.data[i].command);
       char *token = cmd;
@@ -275,7 +280,7 @@ void pretty_print(struct data final_data){
       } 
     }
   }
-
+}
 char *expand_variables_aux(char *line, struct data final_data){
   if (!line) return NULL;
   size_t in_len = strlen(line);

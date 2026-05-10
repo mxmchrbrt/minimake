@@ -38,6 +38,7 @@ int main(int argc, char *argv[]){
           break;
 
         case 'p':;
+          p_option = 1;
           if (!h_option){
             char **lines = read_all_lines(file);
             clean_lines(lines);
